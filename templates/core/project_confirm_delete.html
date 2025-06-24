@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+    <div class="container mt-4">
+        <h2>{{ page_title }}</h2>
+        <p class="lead">Tem certeza que deseja excluir o projeto **"{{ project.name }}"**?</p>
+        <p class="text-danger">ATENÇÃO: Isso excluirá também todas as entradas de trabalho (Jobs) vinculadas a este projeto!</p>
+
+        <div class="card bg-light mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Detalhes do Projeto:</h5>
+                <p class="card-text">
+                    <strong>Nome:</strong> {{ project.name }}<br>
+                    <strong>Descrição:</strong> {{ project.description|default_if_none:"-" }}<br>
+                    <strong>Criado em:</strong> {{ project.created_at|date:"d/m/Y" }}
+                </p>
+            </div>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger me-2">Sim, Excluir Projeto</button>
+            <a href="{% url 'core:listar_projetos' %}" class="btn btn-secondary">Cancelar</a>
+        </form>
+    </div>
+{% endblock %}

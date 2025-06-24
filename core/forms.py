@@ -2,6 +2,21 @@ from django import forms
 from .models import Job, Project
 
 class JobForm(forms.ModelForm):
+    # NOVO: Adicione o construtor __init__ para filtrar o queryset de projetos
+    def __init__(self, *args, **kwargs):
+        # Obtém o 'user' dos kwargs antes de chamar o construtor pai
+        # Remova 'user' de kwargs para não passar para o super().__init__
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+
+        # Filtra o queryset do campo 'project' para mostrar apenas os projetos do usuário
+        if user:
+            self.fields['project'].queryset = Project.objects.filter(user=user).order_by('name')
+        else:
+            # Se, por algum motivo, o usuário não for passado,
+            # garanta que o queryset esteja vazio ou mostre um erro.
+            self.fields['project'].queryset = Project.objects.none() # Impede que projetos de outros apareçam
+
     class Meta:
         model = Job
         fields = ['date', 'project', 'description', 'hours_worked']

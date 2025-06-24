@@ -1,3 +1,4 @@
+from django.db.models.fields import return_None
 from django.http import HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import  login_required
@@ -101,29 +102,49 @@ def lista_trabalhos(request):
 
 @login_required
 def add_trabalhos(request):
-    # O processamento do POST continua igual
     if request.method == 'POST':
-        form = JobForm(request.POST)  # O ModelForm pega os dados do request.POST
+        # Passa o usuário logado para o formulário
+        form = JobForm(request.POST, user=request.user) # <-- ALTERADO AQUI
         if form.is_valid():
             job = form.save(commit=False)
             job.user = request.user
             job.save()
-            messages.success(request, 'Entrada de trabalho adicionada com sucesso!') # <-- ADICIONE ESTA MENSAGEM
+            messages.success(request, 'Entrada de trabalho adicionada com sucesso!')
             return redirect('core:listar_trabalhos')
-    else:  # Para GET request
-        form = JobForm()  # Cria uma instância do formulário vazia
+    else:
+        # Passa o usuário logado para o formulário (para a lista de projetos)
+        form = JobForm(user=request.user) # <-- ALTERADO AQUI
 
-    # Passa o formulário para o template, mesmo que não seja renderizado com {{ form.as_p }}
-    # As errors e other properties of the form are still available to manual render.
     context = {
-        'form': form,  # Ainda passamos o objeto form para acessar erros e campos
+        'form': form,
         'page_title': 'Adicionar Nova Entrada de Trabalho',
     }
-    return render(request, 'core/job_form.html', context)  # Renderiza o template de formulário
+    return render(request, 'core/job_form.html', context)
+
+@login_required
+def editar_trabalhos(request, pk):
+    job = get_object_or_404(Job, pk=pk, user=request.user) # Garante que só o dono edite
+
+    if request.method == 'POST':
+        # Passa o usuário logado para o formulário
+        form = JobForm(request.POST, instance=job, user=request.user) # <-- ALTERADO AQUI
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Entrada de trabalho atualizada com sucesso!')
+            return redirect('core:listar_trabalhos')
+    else:
+        # Passa o usuário logado para o formulário
+        form = JobForm(instance=job, user=request.user) # <-- ALTERADO AQUI
+
+    context = {
+        'form': form,
+        'page_title': f'Editar Entrada de Trabalho - {job.project.name} ({job.date.strftime("%d/%m/%Y")})',
+        'job': job,
+    }
+    return render(request, 'core/job_form.html', context)
 
 @login_required
 def delete_trabalhos(request, pk):
-
     job = get_object_or_404(Job, pk=pk, user=request.user)
 
     if request.method == 'POST':
@@ -131,42 +152,87 @@ def delete_trabalhos(request, pk):
         messages.success(request, 'Entrada de trabalho excluída com sucesso!') # <-- ADICIONE ESTA MENSAGEM
         return redirect('core:listar_trabalhos')
 
-    # Para requisições GET, renderiza uma página de confirmação
     context = {
         'job': job,
         'page_title': 'Confirmar Exclusão de Trabalho',
     }
-
     return render(request, 'core/job_confirm_delete.html', context)
-
-@login_required
-def editar_trabalhos(request, pk):
-    job = get_object_or_404(Job, pk=pk, user=request.user)  # Pega o Job ou 404, garante que pertence ao usuário
-
-    if request.method == 'POST':
-        form = JobForm(request.POST, instance=job)  # Popula o formulário com dados da requisição e o objeto existente
-        if form.is_valid():
-            form.save()  # Salva as alterações no objeto 'job'
-            messages.success(request, 'Entrada de trabalho atualizada com sucesso!') # <-- ADICIONE ESTA MENSAGEM
-            return redirect('core:listar_trabalhos')  # Redireciona para a lista
-    else:
-        form = JobForm(instance=job)  # Popula o formulário com dados do objeto existente para GET
-
-    context = {
-        'form': form,
-        'page_title': f'Editar Entrada de Trabalho - {job.project.name} ({job.date.strftime("%d/%m/%Y")})',
-        'job': job,  # Pode ser útil para exibir detalhes do job que está sendo editado
-    }
-    return render(request, 'core/job_form.html', context)  # Reutiliza o template de formulário
 
 
 
 
 # --------------------- CRUD projetos -----------------------------------------------------
+@login_required
+def lista_projetos(request):
+        # Apenas projetos do usuário logado
+        projects = Project.objects.filter(user=request.user).annotate(
+            # CORREÇÃO AQUI: Use 'job' em vez de 'job_set'
+            total_hours=Sum('job__hours_worked')  # <--- ALTERADO AQUI
+        ).order_by('name')
 
+        context = {
+            'projects': projects,
+            'page_title': 'Meus Projetos',
+        }
+        return render(request, 'core/project_list.html', context)
 
+def add_projetos(request):
+    if request.method == 'POST':
+        form = ProjectForm(request.POST)
+        if form.is_valid():
+            project = form.save(commit=False) # Não salva ainda
+            project.user = request.user # Atribui o usuário logado ao projeto
+            project.save() # Agora salva
+            messages.success(request, 'Projeto adicionado com sucesso!')
+            return redirect('core:listar_projetos') # Redireciona para a lista de projetos
+        else:
+            messages.error(request, 'Erro ao adicionar projeto. Verifique os campos.')
+    else:
+        form = ProjectForm() # Formulário vazio para GET
 
+    context = {
+        'form': form,
+        'page_title': 'Adicionar Novo Projeto',
+    }
+    return render(request, 'core/project_form.html', context)
 
+def editar_projetos(request, pk):
+    # Busca o projeto, mas APENAS SE ELE PERTENCER AO USUÁRIO LOGADO.
+    # Se o ID não for do usuário, retorna 404 (segurança).
+    project = get_object_or_404(Project, pk=pk, user=request.user)
+
+    if request.method == 'POST':
+        form = ProjectForm(request.POST, instance=project)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Projeto atualizado com sucesso!')
+            return redirect('core:listar_projetos')
+        else:
+            messages.error(request, 'Erro ao atualizar projeto. Verifique os campos.')
+    else:
+        form = ProjectForm(instance=project)  # Preenche o formulário com dados existentes
+
+    context = {
+        'form': form,
+        'page_title': f'Editar Projeto - {project.name}',
+        'project': project,
+    }
+    return render(request, 'core/project_form.html', context)
+
+def delete_projetos(request, pk):
+    # Busca o projeto para deletar, mas APENAS SE ELE PERTENCER AO USUÁRIO LOGADO.
+    project = get_object_or_404(Project, pk=pk, user=request.user)
+
+    if request.method == 'POST':
+        project.delete()
+        messages.success(request, 'Projeto excluído com sucesso!')
+        return redirect('core:listar_projetos')
+
+    context = {
+        'project': project,
+        'page_title': 'Confirmar Exclusão de Projeto',
+    }
+    return render(request, 'core/project_confirm_delete.html', context)
 
 # --------------------- Registro de usuario -----------------------------------------------------
 

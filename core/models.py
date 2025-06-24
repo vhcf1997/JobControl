@@ -1,11 +1,10 @@
-from django.contrib.auth.models import User
 from django.db import models
 from django.contrib.auth.models import User # Importa o modelo User do Django
 
-
 class Project(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Usuário")
-    name = models.CharField(max_length=200, unique=True, verbose_name="Nome do Projeto")
+    # CORREÇÃO AQUI: Remova 'unique=True'
+    name = models.CharField(max_length=200, verbose_name="Nome do Projeto")
     description = models.TextField(
         blank=True,
         null=True,
@@ -14,14 +13,16 @@ class Project(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Criado Em")
 
     def __str__(self):
-        return self.name
+        # Sugestão: Alterar para uma representação mais informativa no Admin
+        # return self.name # Seu código atual
+        return f"{self.name} (por {self.user.username})" # Mais claro para diferenciar projetos com o mesmo nome
 
     class Meta:
         verbose_name = "Projeto"
-        verbose_name_plural = "Projetos"
+        verbose_name_plural = "Projetos" # Corrigi para verbose_name_plural, se não for typo
         ordering = ['name'] # Ordena os projetos por nome
-        unique_together = ('user', 'name')
-
+        unique_together = ('user', 'name') # <--- ESTA É A ÚNICA RESTRIÇÃO DE UNICIDADE QUE DEVE EXISTIR
+                                          # Para permitir nomes duplicados entre usuários diferentes
 class Job(models.Model):
     # Busca usuário cadastrado
     user = models.ForeignKey(User, on_delete=models.CASCADE)
