@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block title %}Sessão Encerrada{% endblock %}
+
+{% block content %}
+    <div class="container mt-5 text-center">
+        <div class="alert alert-success" role="alert">
+            <h4 class="alert-heading">Você saiu com sucesso!</h4>
+            <p>Sua sessão foi encerrada.</p>
+            <hr>
+            <p class="mb-0">Clique <a href="{% url 'login' %}">aqui</a> para fazer login novamente.</p>
+        </div>
+    </div>
+{% endblock %}

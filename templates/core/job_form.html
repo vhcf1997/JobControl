@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+    <div class="container mt-4">
+        <h2>{{ page_title }}</h2>
+        <form method="post">
+            {% csrf_token %} {# ESSENCIAL: Proteção CSRF #}
+
+            {# Exibir erros gerais do formulário (se houver) #}
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger" role="alert">
+                    {% for error in form.non_field_errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            {# Campo Data #}
+            <div class="mb-3">
+                <label for="{{ form.date.id_for_label }}" class="form-label">{{ form.date.label }}</label>
+                <input type="date"
+                       name="{{ form.date.name }}"
+                       id="{{ form.date.id_for_label }}"
+                       class="form-control {% if form.date.errors %}is-invalid{% endif %}"
+                       value="{{ form.date.value|date:'Y-m-d' }}" {# Formata a data para YYYY-MM-DD para o input type="date" #}
+                       {% if form.date.field.required %}required{% endif %}>
+                {% if form.date.errors %}
+                    <div class="invalid-feedback">
+                        {% for error in form.date.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                {% if form.date.help_text %}
+                    <div class="form-text">{{ form.date.help_text }}</div>
+                {% endif %}
+            </div>
+
+            {# Campo Projeto #}
+            <div class="mb-3">
+                <label for="{{ form.project.id_for_label }}" class="form-label">{{ form.project.label }}</label>
+                <select name="{{ form.project.name }}"
+                        id="{{ form.project.id_for_label }}"
+                        class="form-select {% if form.project.errors %}is-invalid{% endif %}"
+                        {% if form.project.field.required %}required{% endif %}>
+                    <option value="">Selecione um projeto...</option> {# Opção padrão #}
+                    {% for project_option in form.project.field.queryset %} {# Itera sobre os objetos Project #}
+                        <option value="{{ project_option.pk }}"
+                                {% if form.project.value == project_option.pk %}selected{% endif %}> {# Seleciona o projeto atual, se houver #}
+                            {{ project_option.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+                {% if form.project.errors %}
+                    <div class="invalid-feedback">
+                        {% for error in form.project.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                {% if form.project.help_text %}
+                    <div class="form-text">{{ form.project.help_text }}</div>
+                {% endif %}
+            </div>
+
+            {# Campo Descrição #}
+            <div class="mb-3">
+                <label for="{{ form.description.id_for_label }}" class="form-label">{{ form.description.label }}</label>
+                <textarea name="{{ form.description.name }}"
+                          id="{{ form.description.id_for_label }}"
+                          class="form-control {% if form.description.errors %}is-invalid{% endif %}"
+                          rows="4"
+                          {% if form.description.field.required %}required{% endif %}>{{ form.description.value|default_if_none:"" }}</textarea>
+                {% if form.description.errors %}
+                    <div class="invalid-feedback">
+                        {% for error in form.description.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                {% if form.description.help_text %}
+                    <div class="form-text">{{ form.description.help_text }}</div>
+                {% endif %}
+            </div>
+
+            {# Campo Horas Trabalhadas - CORREÇÃO DE POPULAÇÃO #}
+            <div class="mb-3">
+                <label for="{{ form.hours_worked.id_for_label }}" class="form-label">{{ form.hours_worked.label }}</label>
+                {{ form.hours_worked }}
+
+                {% if form.hours_worked.errors %}
+                    <div class="invalid-feedback d-block"> {# Adicionado d-block para garantir que o erro apareça #}
+                        {% for error in form.hours_worked.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                {% if form.hours_worked.help_text %}
+                    <div class="form-text">{{ form.hours_worked.help_text }}</div>
+                {% endif %}
+            </div>
+
+            <button type="submit" class="btn btn-success">Salvar</button>
+            <a href="{% url 'core:listar_trabalhos' %}" class="btn btn-secondary">Cancelar</a>
+        </form>
+    </div>
+{% endblock %}

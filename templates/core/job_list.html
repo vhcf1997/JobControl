@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+
+{% block title %} Dashboard {% endblock %}
+
+{% block content %}
+    <div class="container mt-4">
+        <h2> Controle de horas </h2>
+        {# --- Bloco de Filtro por Mês e Ano --- #}
+        <div class="card mb-4 shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Filtrar Trabalhos</h5>
+                <form method="GET" action="{% url 'core:listar_trabalhos' %}" class="row g-3 align-items-end">
+                    <div class="col-md-3"> {# Ajustei a largura das colunas para ter espaço #}
+                        <label for="id_month" class="form-label">Mês:</label>
+                        <select name="month" id="id_month" class="form-select">
+                            {% for month_num, month_name in months %}
+                                <option value="{{ month_num }}" {% if selected_month == month_num|stringformat:"s" %}selected{% endif %}>
+                                    {{ month_name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3"> {# Ajustei a largura das colunas para ter espaço #}
+                        <label for="id_year" class="form-label">Ano:</label>
+                        <select name="year" id="id_year" class="form-select">
+                            {% for year_num in years %}
+                                <option value="{{ year_num }}" {% if selected_year == year_num|stringformat:"s" %}selected{% endif %}>
+                                    {{ year_num }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-auto">
+                        <button type="submit" class="btn btn-secondary">Aplicar Filtro</button>
+                    </div>
+                    <div class="col-md-auto">
+                         <a href="{% url 'core:listar_trabalhos' %}" class="btn btn-outline-secondary">Limpar Filtro</a>
+                    </div>
+                    {% if most_recent_month and most_recent_year %}
+                    <div class="col-md-auto">
+                        <a href="{% url 'core:listar_trabalhos' %}?month={{ most_recent_month }}&year={{ most_recent_year }}" class="btn btn-outline-primary">
+                            Registros Mais Recentes
+                        </a>
+                    </div>
+                    {% endif %}
+                    {# --- NOVO BOTÃO DE ORDENAÇÃO AQUI --- #}
+                    <div class="col-md-auto ms-auto"> {# ms-auto para empurrar para a direita #}
+                        <a href="{% url 'core:listar_trabalhos' %}?month={{ selected_month }}&year={{ selected_year }}&order={{ next_order }}"
+                           class="btn btn-outline-info" title="Alterar Ordem">
+                            {# Ícone muda dependendo da ordem atual #}
+                            <i class="fas {% if current_order == '-date' %}fa-sort-amount-down-alt{% else %}fa-sort-amount-up-alt{% endif %}"></i>
+                            {# Texto do botão muda dependendo da ordem atual #}
+                            {% if current_order == '-date' %}Mais Recentes{% else %}Mais Antigos{% endif %}
+                        </a>
+                    </div>
+                    {# --- FIM DO NOVO BOTÃO DE ORDENAÇÃO --- #}
+                </form>
+            </div>
+        </div>
+
+        {% if jobs %}
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Projeto</th>
+                    <th>Descrição das Atividades</th>
+                    <th>Horas Trabalhadas</th>
+                    <th class="text-center">Editar</th> {# Centralizei os cabeçalhos das ações #}
+                    <th class="text-center">Remover</th> {# Centralizei os cabeçalhos das ações #}
+                </tr>
+            </thead>
+            <tbody>
+                {% for job in jobs %}
+                <tr>
+                    <td>{{ job.date|date:"d/m/Y" }}</td> {# Formata a data para dd/mm/aaaa #}
+                    <td>{{ job.project.name }}</td>
+                    <td>{{ job.description|default_if_none:"-" }}</td> {# Exibe '-' se a descrição for nula #}
+                    <td>{{ job.hours_worked|floatformat:2 }}</td> {# Formata as horas com 2 casas decimais #}
+                    <td class="text-center"> {# Centralizei o conteúdo das células de ação #}
+                        <a href="{% url 'core:editar_trabalhos' pk=job.pk %}" class="btn btn-sm btn-info" title="Editar">
+                            <i class="fas fa-edit"></i> {# Ícone de lápis para editar #}
+                        </a>
+                    </td>
+                    <td class="text-center"> {# Centralizei o conteúdo das células de ação #}
+                        <a href="{% url 'core:delete_trabalhos' pk=job.pk %}" class="btn btn-sm btn-danger" title="Excluir">
+                            <i class="fas fa-trash-alt"></i> {# Ícone de lixeira para remover #}
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <th colspan="3">Total Geral de Horas:</th>
+                    <th>
+                        {{ total_hours_sum|floatformat:2 }}h
+                    </th>
+                    <th colspan="2"></th> {# Este colspan agora é 2 para cobrir as duas colunas de ação #}
+                </tr>
+            </tfoot>
+        </table>
+
+        <a href="{% url 'core:add_trabalhos'%}" class="btn btn-primary mb-3">Adicionar Nova Entrada</a>
+        {% else %}
+        <p>Nenhuma entrada de trabalho encontrada nesse mês. <a href="{% url 'core:add_trabalhos' %}">Adicione a primeira!</a></p>
+        {% endif %}
+    </div>
+{% endblock %}
